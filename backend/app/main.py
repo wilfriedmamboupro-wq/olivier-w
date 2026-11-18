@@ -1,0 +1,138 @@
+"""FastAPI server exposing the RFP LangGraph: create a run, read its current
+state (including whatever human-approval gate it's paused at, if any), and
+resume it with a decision. The graph's own SqliteSaver checkpointer is the
+source of truth for state -- this layer is just HTTP plumbing plus a small
+index table (app/db.py) so the dashboard can list every RFP ever created.
+"""
+from __future__ import annotations
+
+import os
+import uuid
+from pathlib import Path
+from typing import Any, Optional
+
+from dotenv import load_dotenv
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from langgraph.types import Command
+from pydantic import BaseModel
+
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
+
+from . import db  # noqa: E402
+from .graph import get_graph  # noqa: E402
+
+app = FastAPI(title="RFP Automation v2 (LangGraph)")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=os.environ.get("CORS_ORIGIN_REGEX", r"http://localhost:\d+"),
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class LaneRequest(BaseModel):
+    origin: str
+    destination: str
+    tons: float
+    max_transit_days: float
+    shipper_note: str = ""
+
+
+class CreateRfpRequest(BaseModel):
+    customer_name: str
+    customer_email: str
+    lanes: list[LaneRequest]
+
+
+class ResumeRequest(BaseModel):
+    payload: dict[str, Any]
+
+
+def _config(rfp_id: str) -> dict:
+    return {"configurable": {"thread_id": rfp_id}}
+
+
+def _pending_interrupt(snapshot) -> Optional[dict]:
+    for task in snapshot.tasks:
+        if task.interrupts:
+            return task.interrupts[0].value
+    return None
+
+
+def _serialize(rfp_id: str) -> dict:
+    graph = get_graph()
+    snapshot = graph.get_state(_config(rfp_id))
+    if not snapshot.values:
+        raise HTTPException(status_code=404, detail="RFP not found")
+    values = snapshot.values
+    return {
+        "rfp_id": rfp_id,
+        "customer_name": values.get("customer_name"),
+        "customer_email": values.get("customer_email"),
+        "lanes": values.get("lanes", []),
+        "messages": values.get("messages", []),
+        "trace": values.get("trace", []),
+        "status": values.get("status"),
+        "is_paused": bool(snapshot.next),
+        "pending_interrupt": _pending_interrupt(snapshot),
+    }
+
+
+@app.get("/api/health")
+def health() -> dict:
+    return {"ok": True}
+
+
+@app.post("/api/rfps")
+def create_rfp(req: CreateRfpRequest) -> dict:
+    rfp_id = str(uuid.uuid4())
+    graph = get_graph()
+    initial_state = {
+        "rfp_id": rfp_id,
+        "customer_email": req.customer_email,
+        "customer_name": req.customer_name,
+        "lanes": [lane.model_dump() for lane in req.lanes],
+        "messages": [],
+        "trace": [],
+        "status": "NEW",
+        "pending_draft": None,
+    }
+    graph.invoke(initial_state, config=_config(rfp_id))
+    db.insert_rfp_index(rfp_id, req.customer_name, req.customer_email, len(req.lanes))
+    return _serialize(rfp_id)
+
+
+@app.get("/api/rfps")
+def list_rfps() -> list[dict]:
+    out = []
+    for row in db.list_rfp_index():
+        try:
+            out.append(_serialize(row["rfp_id"]))
+        except HTTPException:
+            continue
+    return out
+
+
+@app.get("/api/rfps/{rfp_id}")
+def get_rfp(rfp_id: str) -> dict:
+    return _serialize(rfp_id)
+
+
+@app.post("/api/rfps/{rfp_id}/resume")
+def resume_rfp(rfp_id: str, req: ResumeRequest) -> dict:
+    graph = get_graph()
+    config = _config(rfp_id)
+    snapshot = graph.get_state(config)
+    if not snapshot.values:
+        raise HTTPException(status_code=404, detail="RFP not found")
+    if not snapshot.next:
+        raise HTTPException(status_code=409, detail="This RFP is not waiting on a decision")
+    graph.invoke(Command(resume=req.payload), config=config)
+    return _serialize(rfp_id)
+
+
+@app.get("/api/proposals")
+def get_proposals() -> list[dict]:
+    return db.list_proposals()
