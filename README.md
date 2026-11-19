@@ -59,31 +59,42 @@ classifies it.
 
 ## Running locally
 
-### Backend
+Two processes, two terminals: the backend first, then the frontend.
+
+### 1. Backend — http://localhost:8000
 
 ```
 cd backend
-python -m venv .venv && .venv/Scripts/activate   # or source .venv/bin/activate
+python -m venv .venv
+.venv/Scripts/activate        # Windows (Git Bash/PowerShell); use `source .venv/bin/activate` on macOS/Linux
 pip install -r requirements.txt
-cp .env.example .env   # fill in ANTHROPIC_API_KEY at minimum
+cp .env.example .env          # fill in ANTHROPIC_API_KEY at minimum
 python -m uvicorn app.main:app --port 8000
 ```
 
-Without `SMTP_USERNAME`/`SMTP_PASSWORD` set, quote emails are logged to the
-console instead of sent — the pipeline still runs end to end.
+Check it came up: `curl http://localhost:8000/api/health` should return `{"ok":true}`.
+Without `SMTP_USERNAME`/`SMTP_PASSWORD` set in `.env`, quote emails are logged
+to the console instead of sent — the pipeline still runs end to end.
 
-### Frontend
+### 2. Frontend — http://localhost:5173
 
 ```
 cd frontend
 npm install
-cp .env.example .env.local   # VITE_API_BASE_URL, defaults to http://localhost:8000
+cp .env.example .env.local    # VITE_API_BASE_URL, defaults to http://localhost:8000
 npm run dev
 ```
 
-Open the printed localhost URL, click **+ New RFP**, and walk a lane through
-the pipeline — approve the pricing request, approve the quote, then record a
-simulated or real customer reply.
+Open the URL Vite prints (`5173`, or the next free port if something — e.g.
+the v1 frontend — is already on `5173`). Click **+ New RFP** and walk a lane
+through the pipeline: approve the pricing request, approve the quote, then
+record a simulated or real customer reply.
+
+### Stopping
+
+`Ctrl+C` in each terminal. On Windows, if a port is stuck in use from a
+previous run: `netstat -ano | grep :8000` (or `:5173`) to find the PID, then
+`taskkill //PID <pid> //F`.
 
 ## Testing
 
