@@ -117,6 +117,36 @@ export default function NewRfp() {
   );
 }
 
+function AirportSelect({
+  id,
+  label,
+  value,
+  airports,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  airports: string[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="field">
+      <label htmlFor={id}>{label}</label>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)} required>
+        <option value="" disabled>
+          {airports.length ? "Select an airport…" : "Loading airports…"}
+        </option>
+        {airports.map((code) => (
+          <option key={code} value={code}>
+            {code}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function LaneFields({
   lane,
   index,
@@ -146,32 +176,20 @@ function LaneFields({
         </button>
       )}
       <div className="form-grid">
-        <div className="field">
-          <label htmlFor={originId}>Origin airport</label>
-          <select id={originId} value={lane.origin} onChange={(e) => onChange(index, { origin: e.target.value })} required>
-            <option value="" disabled>
-              {airports.length ? "Select an airport…" : "Loading airports…"}
-            </option>
-            {airports.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="field">
-          <label htmlFor={destId}>Destination airport</label>
-          <select id={destId} value={lane.destination} onChange={(e) => onChange(index, { destination: e.target.value })} required>
-            <option value="" disabled>
-              {airports.length ? "Select an airport…" : "Loading airports…"}
-            </option>
-            {airports.map((code) => (
-              <option key={code} value={code}>
-                {code}
-              </option>
-            ))}
-          </select>
-        </div>
+        <AirportSelect
+          id={originId}
+          label="Origin airport"
+          value={lane.origin}
+          airports={airports}
+          onChange={(value) => onChange(index, { origin: value })}
+        />
+        <AirportSelect
+          id={destId}
+          label="Destination airport"
+          value={lane.destination}
+          airports={airports}
+          onChange={(value) => onChange(index, { destination: value })}
+        />
         <div className="field">
           <label htmlFor={tonsId}>Tons</label>
           <input

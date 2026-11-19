@@ -1,4 +1,5 @@
 import { useId, useState } from "react";
+import type { ReactNode } from "react";
 import type { PendingInterrupt } from "../types";
 
 interface Props {
@@ -18,6 +19,26 @@ const TITLE: Record<PendingInterrupt["action"], string> = {
   approve_quote_send: "Send this quote to the customer?",
   customer_response_needed: "Record the customer's reply",
 };
+
+function RadioOption({
+  name,
+  value,
+  checked,
+  onChange,
+  children,
+}: {
+  name: string;
+  value: string;
+  checked: boolean;
+  onChange: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <label>
+      <input type="radio" name={name} value={value} checked={checked} onChange={onChange} /> {children}
+    </label>
+  );
+}
 
 function EmailApprovalForm({ pendingInterrupt, busy, onResume }: Props) {
   const subjectId = useId();
@@ -72,13 +93,12 @@ function CustomerResponseForm({ busy, onResume }: Omit<Props, "pendingInterrupt"
       <fieldset className="fieldset-reset">
         <legend>How did the customer respond?</legend>
         <div className="decision-choices">
-          <label>
-            <input type="radio" name="mode" value="simulate" checked={mode === "simulate"} onChange={() => setMode("simulate")} /> Simulate a
-            reply (demo)
-          </label>
-          <label>
-            <input type="radio" name="mode" value="real" checked={mode === "real"} onChange={() => setMode("real")} /> I have a real reply
-          </label>
+          <RadioOption name="mode" value="simulate" checked={mode === "simulate"} onChange={() => setMode("simulate")}>
+            Simulate a reply (demo)
+          </RadioOption>
+          <RadioOption name="mode" value="real" checked={mode === "real"} onChange={() => setMode("real")}>
+            I have a real reply
+          </RadioOption>
         </div>
       </fieldset>
 
@@ -86,26 +106,12 @@ function CustomerResponseForm({ busy, onResume }: Omit<Props, "pendingInterrupt"
         <fieldset className="fieldset-reset">
           <legend>Simulated decision</legend>
           <div className="decision-choices">
-            <label>
-              <input
-                type="radio"
-                name="decision"
-                value="accepted"
-                checked={decision === "accepted"}
-                onChange={() => setDecision("accepted")}
-              />{" "}
+            <RadioOption name="decision" value="accepted" checked={decision === "accepted"} onChange={() => setDecision("accepted")}>
               Accepted
-            </label>
-            <label>
-              <input
-                type="radio"
-                name="decision"
-                value="rejected"
-                checked={decision === "rejected"}
-                onChange={() => setDecision("rejected")}
-              />{" "}
+            </RadioOption>
+            <RadioOption name="decision" value="rejected" checked={decision === "rejected"} onChange={() => setDecision("rejected")}>
               Rejected
-            </label>
+            </RadioOption>
           </div>
         </fieldset>
       ) : (

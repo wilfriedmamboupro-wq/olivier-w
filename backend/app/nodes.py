@@ -9,14 +9,14 @@ whose result is checkpointed before the pausing node ever runs.
 """
 from __future__ import annotations
 
-import uuid
+import re
 from datetime import datetime, timedelta, timezone
 
 from langgraph.types import interrupt
 
 from . import db, email_sender, llm
 from .pricing_heuristic import suggested_price_per_ton
-from .requirements_catalog import ALL_REQUIREMENTS, BY_CODE, extract_requirements, labels_for, normalize_label_list
+from .requirements_catalog import ALL_REQUIREMENTS, extract_requirements, labels_for, normalize_label_list
 from .state import RfpState
 from .transit_graph import TransitGraph, evaluate_lane
 from .models import Lane as LaneModel
@@ -52,10 +52,8 @@ def ingest_and_route(state: RfpState) -> dict:
         note = raw.get("shipper_note", "")
         try:
             codes = normalize_label_list(llm.invoke_json(_REQ_SYSTEM_PROMPT, note).get("requirements", []))
-            method = "llm"
         except Exception:  # noqa: BLE001
             codes = extract_requirements(note)
-            method = "keyword_fallback"
 
         lane_model = LaneModel(
             lane_id=raw.get("lane_id") or f"L{i:03d}",
@@ -132,13 +130,20 @@ def draft_pricing_request(state: RfpState) -> dict:
     }
 
 
+def _await_approval(draft: dict) -> tuple[dict, str, str]:
+    """Pause for a human decision on an email draft; return it with the
+    (possibly human-edited) subject/body the human approved."""
+    decision = interrupt({"action": draft["action"], "subject": draft["subject"], "body": draft["body"]})
+    subject = decision.get("subject") or draft["subject"]
+    body = decision.get("body") or draft["body"]
+    return decision, subject, body
+
+
 def await_pricing_approval(state: RfpState) -> dict:
     draft = state["pending_draft"]
-    decision = interrupt({"action": draft["action"], "subject": draft["subject"], "body": draft["body"]})
+    decision, subject, body = _await_approval(draft)
 
     if decision.get("approve"):
-        subject = decision.get("subject") or draft["subject"]
-        body = decision.get("body") or draft["body"]
         lanes = [dict(lane, status="PRICING_REQUESTED") for lane in state["lanes"]]
         return {
             "lanes": lanes,
@@ -195,8 +200,6 @@ def parse_pricing_reply(state: RfpState) -> dict:
         prices = {k: float(v) for k, v in llm.invoke_json(_PARSE_PRICING_SYSTEM_PROMPT, body).items()}
         method = "llm"
     except Exception:  # noqa: BLE001
-        import re
-
         prices = {m.group(1): float(m.group(2).replace(",", "")) for m in re.finditer(r"(L\d{3}).{0,200}?\$\s?([\d,]+(?:\.\d+)?)", body, re.S)}
         method = "regex_fallback"
 
@@ -264,15 +267,13 @@ def draft_quote(state: RfpState) -> dict:
 
 def await_quote_approval(state: RfpState) -> dict:
     draft = state["pending_draft"]
-    decision = interrupt({"action": draft["action"], "subject": draft["subject"], "body": draft["body"]})
+    decision, subject, body = _await_approval(draft)
 
     if not decision.get("approve"):
         return {"trace": [_trace("await_quote_approval", "needs_human", "Human cancelled the quote send", "human")], "pending_draft": None}
 
-    subject = decision.get("subject") or draft["subject"]
-    body = decision.get("body") or draft["body"]
     result = email_sender.send_email(state["customer_email"], subject, body)
-    lanes = [dict(lane, status="QUOTE_SENT") if lane["status"] not in ("NEEDS_HUMAN_REVIEW",) else lane for lane in state["lanes"]]
+    lanes = [dict(lane, status="QUOTE_SENT") if lane["status"] != "NEEDS_HUMAN_REVIEW" else lane for lane in state["lanes"]]
 
     if result["error"]:
         summary = f"Email send failed: {result['error']}"
@@ -367,13 +368,13 @@ def finalize_accept(state: RfpState) -> dict:
         )
         logged += 1
 
+    log_summary = f"Logged {logged} lane(s) to proposals.db"
+    if skipped:
+        log_summary += f"; skipped unresolved: {skipped}"
+
     trace = [
         _trace("finalize_accept", "done", f"Kickoff meeting proposed for {kickoff_at.isoformat()}"),
-        _trace(
-            "finalize_accept",
-            "needs_human" if skipped else "done",
-            f"Logged {logged} lane(s) to proposals.db" + (f"; skipped unresolved: {skipped}" if skipped else ""),
-        ),
+        _trace("finalize_accept", "needs_human" if skipped else "done", log_summary),
     ]
     return {"trace": trace}
 
