@@ -13,10 +13,12 @@ from pathlib import Path
 from typing import Any, Optional
 
 from dotenv import load_dotenv
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from langgraph.types import Command
 from pydantic import BaseModel, Field
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
@@ -44,7 +46,20 @@ def require_api_key(x_api_key: Optional[str] = Header(default=None)) -> None:
         raise HTTPException(status_code=401, detail="Invalid or missing API key")
 
 
+def _rate_limit_key(request: Request) -> str:
+    """Rate-limit per API key when one is configured (so clients behind a
+    shared IP are tracked separately); fall back to the caller's IP."""
+    api_key = request.headers.get("x-api-key")
+    if api_key:
+        return api_key
+    return request.client.host if request.client else "unknown"
+
+
+limiter = Limiter(key_func=_rate_limit_key)
+
 app = FastAPI(title="RFP Automation v2 (LangGraph)")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -52,6 +67,17 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type", "X-API-Key"],
 )
+
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-site"
+    return response
+
 
 _protected = [Depends(require_api_key)]
 
@@ -124,7 +150,8 @@ def list_airports() -> list[str]:
 
 
 @app.post("/api/rfps", dependencies=_protected)
-def create_rfp(req: CreateRfpRequest) -> dict:
+@limiter.limit("10/minute")
+def create_rfp(request: Request, req: CreateRfpRequest) -> dict:
     rfp_id = str(uuid.uuid4())
     initial_state = {
         "rfp_id": rfp_id,
@@ -158,7 +185,8 @@ def get_rfp(rfp_id: str) -> dict:
 
 
 @app.post("/api/rfps/{rfp_id}/resume", dependencies=_protected)
-def resume_rfp(rfp_id: str, req: ResumeRequest) -> dict:
+@limiter.limit("20/minute")
+def resume_rfp(request: Request, rfp_id: str, req: ResumeRequest) -> dict:
     config = _config(rfp_id)
     snapshot = _get_state(config)
     if not snapshot.values:

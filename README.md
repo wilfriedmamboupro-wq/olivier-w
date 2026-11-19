@@ -81,6 +81,13 @@ exact value in an `X-API-Key` header (401 otherwise) — set the same value in
 `frontend/.env.local` as `VITE_API_KEY` so the UI keeps working. Leave both
 unset to run with no auth (fine for a throwaway local demo only).
 
+`POST /api/rfps` is capped at 10 requests/minute and `POST
+/api/rfps/{id}/resume` at 20/minute per API key (or per IP if no key is
+set) — each creates or resumes an LLM-driven run, so this bounds runaway
+cost/abuse. Every response also carries a few baseline security headers
+(`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
+`Cross-Origin-Resource-Policy`).
+
 ### 2. Frontend — http://localhost:5173
 
 ```
