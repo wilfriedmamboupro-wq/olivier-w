@@ -12,6 +12,47 @@ deterministic Python (`app/transit_graph.py`, `app/pricing_heuristic.py`) —
 from free text and drafting the prose of each email, always around numbers
 it's handed, never numbers it invents.
 
+## Application flow
+
+A full RFP walked through the UI, start to finish.
+
+**1. Empty dashboard** — nothing created yet.
+
+![Empty dashboard](docs/images/flow/flow-01-dashboard-empty.png)
+
+**2. New RFP** — origin/destination are `<select>`s populated from the
+Transit Table, so only real airport codes can be submitted.
+
+![New RFP form, filled in](docs/images/flow/flow-02-new-rfp-form.png)
+
+**3. First pause: pricing approval** — Claude has already routed the lane
+and drafted the email to the Pricing team; the orchestration panel on the
+right shows every step so far, color-coded by who/what did it.
+
+![Pricing-request approval](docs/images/flow/flow-03-pricing-approval.png)
+
+**4. Second pause: quote approval** — after a mock Pricing reply and price
+extraction, Claude drafts the customer quote. Both this and the pricing
+email are editable right here before sending.
+
+![Quote approval](docs/images/flow/flow-04-quote-approval.png)
+
+**5. Third pause: the customer's reply** — simulate a decision for a demo,
+or paste in a real reply for Claude to classify.
+
+![Waiting on the customer's reply](docs/images/flow/flow-05-customer-response.png)
+
+**6. Accepted** — the full orchestration trace end to end: every node,
+every actor (Claude / Human / System), the complete message thread, and the
+final `finalize_accept` entries (kickoff proposed, lane logged to SQLite).
+
+![Accepted, full trace](docs/images/flow/flow-06-accepted-final.png)
+
+**7. Back on the dashboard** — the completed RFP now shows up in the
+manifest.
+
+![Dashboard with the completed RFP](docs/images/flow/flow-07-dashboard-with-rfp.png)
+
 ## Architecture
 
 ```
