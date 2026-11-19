@@ -26,11 +26,18 @@ backend/app/
   db.py           SQLite: accepted-proposal log + an RFP index for the dashboard
   nodes.py        one function per graph node
   graph.py        StateGraph wiring + SqliteSaver checkpointer
-  main.py         FastAPI: create / get / resume / list endpoints
+  main.py         FastAPI: create / get / resume / list endpoints, auth,
+                   rate limiting, security headers
 
 frontend/src/
+  domain/     Rfp, Lane, Message, TraceEvent, PendingInterrupt, Proposal --
+              the types components work with
+  dto/        request-only shapes (LaneDraftDto, CreateRfpRequestDto, ...)
+  api/        ApiError, httpClient (getGlobalHttpInstance), endpoints.ts,
+              rfpApi.ts, proposalApi.ts -- one typed function per route
   pages/      Dashboard, NewRfp, RfpDetail
   components/ LaneTable, ApprovalCard, OrchestrationTrace, MessageThread, ...
+  test/       customRender (Testing Library + MemoryRouter), setup.ts
 ```
 
 ### The graph
@@ -54,33 +61,46 @@ plausible accept/reject reply for demo purposes — no real customer exists in
 this environment) or **real**, where you paste in an actual reply and Claude
 classifies it.
 
+The same graph as a node diagram, with its two decision points (a lane that
+can't be fully routed, and the cancel exits at each approval gate):
+
+![Lanebook workflow graph](docs/images/workflow-graph.png)
+
+Interactive version: [`docs/workflow-graph.html`](docs/workflow-graph.html)
+(open it directly in a browser — it's a standalone page, no server needed).
+
 ## Running locally
 
 Two processes, two terminals: the backend first, then the frontend.
 
 ### 1. Backend — http://localhost:8000
 
-```
+```bash
 cd backend
 python -m venv .venv
 .venv/Scripts/activate        # Windows (Git Bash/PowerShell); use `source .venv/bin/activate` on macOS/Linux
 pip install -r requirements.txt
-cp .env.example .env          # fill in ANTHROPIC_API_KEY at minimum
+cp .env.example .env          # fill in ANTHROPIC_API_KEY at minimum -- see below
 python -m uvicorn app.main:app --port 8000
 ```
 
 Check it came up: `curl http://localhost:8000/api/health` should return `{"ok":true}`.
-Interactive API docs (Swagger UI) are at `http://localhost:8000/docs` — if
-`API_KEY` is set, click **Authorize** there and paste it to try routes
-directly from the browser; ReDoc is at `/redoc` and the raw schema at
-`/openapi.json`.
-Without `SMTP_USERNAME`/`SMTP_PASSWORD` set in `.env`, quote emails are logged
-to the console instead of sent — the pipeline still runs end to end.
 
-If `.env` sets `API_KEY`, every route except `/api/health` requires that
-exact value in an `X-API-Key` header (401 otherwise) — set the same value in
-`frontend/.env.local` as `VITE_API_KEY` so the UI keeps working. Leave both
-unset to run with no auth (fine for a throwaway local demo only).
+**`backend/.env`** (copied from `.env.example`):
+
+| Variable | Required | What it does |
+|---|---|---|
+| `ANTHROPIC_API_KEY` | **Yes** | Claude API key (console.anthropic.com) |
+| `ANTHROPIC_MODEL` | No | Default `claude-haiku-4-5` |
+| `ANTHROPIC_TIMEOUT_SECONDS` | No | Default `30` |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USERNAME` / `SMTP_PASSWORD` / `SMTP_FROM` | No | Omit `SMTP_USERNAME`/`SMTP_PASSWORD` to log quote emails to the console instead of sending them |
+| `TEST_EMAIL_OVERRIDE` | No | Redirects every outgoing email here regardless of recipient (subject prefixed with the real intended recipient) |
+| `CORS_ORIGIN_REGEX` | No | Default `http://localhost:\d+` |
+| `API_KEY` | No, recommended | Requires this exact value in an `X-API-Key` header on every route except `/api/health` |
+
+If `API_KEY` is set, also set the same value in `frontend/.env.local` as
+`VITE_API_KEY` so the UI keeps working. Leave both unset to run with no auth
+(fine for a throwaway local demo only).
 
 `POST /api/rfps` is capped at 10 requests/minute and `POST
 /api/rfps/{id}/resume` at 20/minute per API key (or per IP if no key is
@@ -89,14 +109,30 @@ cost/abuse. Every response also carries a few baseline security headers
 (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`,
 `Cross-Origin-Resource-Policy`).
 
+#### Interactive API docs (Swagger)
+
+`http://localhost:8000/docs` — click **Authorize** and paste `API_KEY` (if
+set) to try every route directly from the browser; schemas are real Pydantic
+models, not bare objects. ReDoc is at `/redoc`, the raw OpenAPI schema at
+`/openapi.json`.
+
+![Swagger UI](docs/images/swagger.png)
+
 ### 2. Frontend — http://localhost:5173
 
-```
+```bash
 cd frontend
 npm install
 cp .env.example .env.local    # VITE_API_BASE_URL, defaults to http://localhost:8000
 npm run dev
 ```
+
+**`frontend/.env.local`** (copied from `.env.example`):
+
+| Variable | Required | What it does |
+|---|---|---|
+| `VITE_API_BASE_URL` | No | Default `http://localhost:8000` |
+| `VITE_API_KEY` | Only if the backend's `API_KEY` is set | Must match it exactly |
 
 Open the URL Vite prints (`5173`, or the next free port if one is already
 taken). Click **+ New RFP** and walk a lane through the pipeline: approve the
@@ -111,7 +147,35 @@ previous run: `netstat -ano | grep :8000` (or `:5173`) to find the PID, then
 
 ## Testing
 
-```
+### Backend — pytest
+
+```bash
 cd backend
 python -m pytest
 ```
+
+4 tests in `tests/test_graph_flow.py` drive the compiled graph directly
+(`happy path → accept`, `customer rejection`, `unroutable lane flagged for
+review`, `pricing cancelled`). Every LLM call falls back to a
+keyword/regex/template path on failure, so the suite needs no real
+`ANTHROPIC_API_KEY` and makes no network calls.
+
+### Frontend — Vitest
+
+```bash
+cd frontend
+npm test              # run once
+npm run test:watch    # watch mode
+npm run test:coverage # run once + coverage report (text + HTML)
+```
+
+Each component has a colocated `<Name>.spec.tsx` using React Testing Library
+and `@testing-library/user-event`, rendered through a shared `customRender`
+(`src/test/customRender.tsx`, wraps `render()` in a `MemoryRouter`).
+36 tests, 100% statement/branch/line coverage on every component:
+
+![Vitest coverage report](docs/images/coverage.png)
+
+The HTML report (`npm run test:coverage`, then open
+`frontend/coverage/index.html`) is regenerated on every run and is
+gitignored — the screenshot above is a point-in-time snapshot.

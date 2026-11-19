@@ -1,0 +1,393 @@
+<title>Lanebook Workflow Graph</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a single vertical spine down the center; two decision diamonds
+   branch left/right to side columns and rejoin the spine below. */
+:root {
+  --bg: #f5f5f1;
+  --surface: #ffffff;
+  --border: #dddad2;
+  --ink: #1b1d22;
+  --ink-muted: #5c5f68;
+  --claude: #6a4fc4;
+  --claude-bg: #efeafb;
+  --human: #9a5c0e;
+  --human-bg: #fcefd9;
+  --system: #1a7566;
+  --system-bg: #e3f3ee;
+  --mixed-border: #8b8e96;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13151a;
+    --surface: #1a1d24;
+    --border: #2d313b;
+    --ink: #eceae3;
+    --ink-muted: #a3a7b1;
+    --claude: #b2a1ec;
+    --claude-bg: #292447;
+    --human: #e3ad5e;
+    --human-bg: #3a2c12;
+    --system: #6fd3bf;
+    --system-bg: #12332c;
+    --mixed-border: #767b86;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #13151a;
+  --surface: #1a1d24;
+  --border: #2d313b;
+  --ink: #eceae3;
+  --ink-muted: #a3a7b1;
+  --claude: #b2a1ec;
+  --claude-bg: #292447;
+  --human: #e3ad5e;
+  --human-bg: #3a2c12;
+  --system: #6fd3bf;
+  --system-bg: #12332c;
+  --mixed-border: #767b86;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Inter", Arial, sans-serif;
+  padding-block: 48px;
+}
+
+.wrap {
+  max-width: 1040px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+
+h1 {
+  font-family: "Space Grotesk", Arial, sans-serif;
+  font-weight: 600;
+  font-size: 28px;
+  margin: 0 0 8px;
+}
+
+.intro {
+  color: var(--ink-muted);
+  font-size: 15px;
+  line-height: 1.5;
+  max-width: 640px;
+  margin: 0 0 24px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.legend .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dot.claude { background: var(--claude); }
+.dot.human { background: var(--human); }
+.dot.system { background: var(--system); }
+.dot.mixed { background: var(--surface); border: 2px solid var(--mixed-border); }
+
+figure {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+figure svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  color: var(--ink-muted);
+}
+
+figcaption {
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--ink-muted);
+}
+
+.n-box text, .n-diamond text, .n-term text {
+  font-family: "Inter", Arial, sans-serif;
+  fill: var(--ink);
+}
+
+.n-box.claude rect { fill: var(--claude-bg); stroke: var(--claude); }
+.n-box.human rect { fill: var(--human-bg); stroke: var(--human); }
+.n-box.system rect { fill: var(--system-bg); stroke: var(--system); }
+.n-box.mixed rect { fill: var(--surface); stroke: var(--mixed-border); stroke-dasharray: 4 3; }
+.n-box rect { stroke-width: 1.5; }
+
+.n-diamond polygon { fill: var(--surface); stroke: var(--ink-muted); stroke-width: 1.5; }
+
+.n-term rect { fill: var(--surface); stroke: var(--ink-muted); stroke-width: 1.2; stroke-dasharray: 3 3; }
+.n-term text { fill: var(--ink-muted); }
+
+.n-start rect { fill: var(--ink); }
+.n-start text { fill: var(--bg); }
+
+.edge-group { color: var(--ink-muted); }
+.edge { stroke: currentColor; stroke-width: 1.5; fill: none; }
+.edge.dashed { stroke-dasharray: 4 3; }
+.edge-label { font-size: 11px; fill: var(--ink-muted); font-style: italic; }
+
+.principle {
+  margin-top: 20px;
+  padding: 16px 20px;
+  background: var(--system-bg);
+  border: 1px solid var(--system);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--ink);
+}
+
+.principle b { color: var(--system); }
+
+@media (max-width: 640px) {
+  h1 { font-size: 23px; }
+  figure { padding: 14px; border-radius: 12px; }
+}
+</style>
+
+<div class="wrap">
+  <h1>Lanebook Workflow Graph</h1>
+  <p class="intro">
+    The RFP pipeline as a node graph, with its decision points: a lane that
+    can't be fully routed, a cancelled approval, and the choice between a
+    simulated or a real customer reply.
+  </p>
+
+  <div class="legend">
+    <span><span class="dot claude"></span>Claude (AI)</span>
+    <span><span class="dot human"></span>Human</span>
+    <span><span class="dot system"></span>System (deterministic)</span>
+    <span><span class="dot mixed"></span>Mixed</span>
+  </div>
+
+  <figure>
+    <svg viewBox="0 0 960 1560" role="img" aria-label="Flowchart of the Lanebook RFP pipeline, from RFP intake through routing, pricing approval, quote approval, and the customer's accept or reject decision, showing which steps Claude performs, which require a human, and which are deterministic system logic.">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+        </marker>
+      </defs>
+
+      <!-- edges (drawn first so nodes paint over their ends cleanly) -->
+      <g class="edge-group">
+        <line class="edge" x1="480" y1="70" x2="480" y2="102" marker-end="url(#arrow)" />
+        <line class="edge" x1="480" y1="158" x2="480" y2="190" marker-end="url(#arrow)" />
+        <line class="edge" x1="480" y1="246" x2="480" y2="275" marker-end="url(#arrow)" />
+
+        <!-- diamond D branches -->
+        <path class="edge" d="M385,325 L310,327" marker-end="url(#arrow)" />
+        <text class="edge-label" x="345" y="317" text-anchor="middle">yes</text>
+        <path class="edge" d="M480,373 L480,458" marker-end="url(#arrow)" />
+        <text class="edge-label" x="497" y="415" text-anchor="middle">no</text>
+        <path class="edge" d="M200,354 L200,487 L368,487" marker-end="url(#arrow)" />
+
+        <line class="edge" x1="480" y1="514" x2="480" y2="546" marker-end="url(#arrow)" />
+        <line class="edge" x1="480" y1="602" x2="480" y2="634" marker-end="url(#arrow)" />
+        <path class="edge dashed" d="M590,575 L648,578" marker-end="url(#arrow)" />
+        <text class="edge-label" x="615" y="567" text-anchor="middle">cancel</text>
+
+        <line class="edge" x1="480" y1="702" x2="480" y2="734" marker-end="url(#arrow)" />
+        <line class="edge" x1="480" y1="790" x2="480" y2="822" marker-end="url(#arrow)" />
+        <line class="edge" x1="480" y1="878" x2="480" y2="910" marker-end="url(#arrow)" />
+        <path class="edge dashed" d="M590,939 L648,939" marker-end="url(#arrow)" />
+        <text class="edge-label" x="615" y="931" text-anchor="middle">cancel</text>
+
+        <line class="edge" x1="480" y1="966" x2="480" y2="998" marker-end="url(#arrow)" />
+
+        <!-- diamond L branches -->
+        <path class="edge" d="M380,1050 L312,1120" marker-end="url(#arrow)" />
+        <text class="edge-label" x="330" y="1075" text-anchor="middle">simulate</text>
+        <path class="edge" d="M580,1050 L648,1120" marker-end="url(#arrow)" />
+        <text class="edge-label" x="632" y="1075" text-anchor="middle">real</text>
+
+        <line class="edge" x1="760" y1="1164" x2="760" y2="1196" marker-end="url(#arrow)" />
+
+        <path class="edge" d="M200,1164 L200,1287 L478,1287" marker-end="url(#arrow)" />
+        <path class="edge" d="M760,1252 L760,1287 L482,1287" marker-end="url(#arrow)" />
+
+        <!-- diamond P branches -->
+        <path class="edge" d="M390,1335 L312,1450" marker-end="url(#arrow)" />
+        <text class="edge-label" x="330" y="1390" text-anchor="middle">yes</text>
+        <path class="edge" d="M570,1335 L648,1450" marker-end="url(#arrow)" />
+        <text class="edge-label" x="632" y="1390" text-anchor="middle">no</text>
+      </g>
+
+      <!-- A: start -->
+      <g class="n-start">
+        <rect x="370" y="20" width="220" height="50" rx="25" />
+        <text x="480" y="40" text-anchor="middle" font-size="12" font-weight="600">RFP received:</text>
+        <text x="480" y="56" text-anchor="middle" font-size="12" font-weight="600">Transit Table + lanes</text>
+      </g>
+
+      <!-- B -->
+      <g class="n-box claude">
+        <rect x="370" y="104" width="220" height="54" rx="8" />
+        <text x="480" y="125" text-anchor="middle" font-size="13" font-weight="600">Extract requirements</text>
+        <text x="480" y="142" text-anchor="middle" font-size="13">(free text)</text>
+      </g>
+
+      <!-- C -->
+      <g class="n-box system">
+        <rect x="370" y="192" width="220" height="54" rx="8" />
+        <text x="480" y="213" text-anchor="middle" font-size="13" font-weight="600">Route lanes</text>
+        <text x="480" y="230" text-anchor="middle" font-size="13">(Transit Table graph)</text>
+      </g>
+
+      <!-- D: diamond -->
+      <g class="n-diamond">
+        <polygon points="480,277 575,325 480,373 385,325" />
+        <text x="480" y="320" text-anchor="middle" font-size="12" font-style="italic">Lane needs</text>
+        <text x="480" y="336" text-anchor="middle" font-size="12" font-style="italic">human review?</text>
+      </g>
+
+      <!-- E -->
+      <g class="n-box human">
+        <rect x="90" y="300" width="220" height="54" rx="8" />
+        <text x="200" y="321" text-anchor="middle" font-size="13" font-weight="600">Flagged for manual</text>
+        <text x="200" y="338" text-anchor="middle" font-size="13">resolution</text>
+      </g>
+
+      <!-- F -->
+      <g class="n-box claude">
+        <rect x="370" y="460" width="220" height="54" rx="8" />
+        <text x="480" y="481" text-anchor="middle" font-size="13" font-weight="600">Draft pricing-request</text>
+        <text x="480" y="498" text-anchor="middle" font-size="13">email</text>
+      </g>
+
+      <!-- G -->
+      <g class="n-box human">
+        <rect x="370" y="548" width="220" height="54" rx="8" />
+        <text x="480" y="580" text-anchor="middle" font-size="13" font-weight="600">Approve &amp; send</text>
+      </g>
+      <g class="n-term">
+        <rect x="650" y="560" width="190" height="36" rx="18" />
+        <text x="745" y="583" text-anchor="middle" font-size="11">Run ends (cancelled)</text>
+      </g>
+
+      <!-- H -->
+      <g class="n-box mixed">
+        <rect x="370" y="636" width="220" height="66" rx="8" />
+        <text x="480" y="660" text-anchor="middle" font-size="13" font-weight="600">Mock Pricing reply</text>
+        <text x="480" y="677" text-anchor="middle" font-size="12">(price calculated +</text>
+        <text x="480" y="692" text-anchor="middle" font-size="12">Claude's prose)</text>
+      </g>
+
+      <!-- I -->
+      <g class="n-box claude">
+        <rect x="370" y="736" width="220" height="54" rx="8" />
+        <text x="480" y="768" text-anchor="middle" font-size="13" font-weight="600">Extract prices</text>
+      </g>
+
+      <!-- J -->
+      <g class="n-box claude">
+        <rect x="370" y="824" width="220" height="54" rx="8" />
+        <text x="480" y="856" text-anchor="middle" font-size="13" font-weight="600">Draft customer quote</text>
+      </g>
+
+      <!-- K -->
+      <g class="n-box human">
+        <rect x="370" y="912" width="220" height="54" rx="8" />
+        <text x="480" y="944" text-anchor="middle" font-size="13" font-weight="600">Approve &amp; send</text>
+      </g>
+      <g class="n-term">
+        <rect x="650" y="921" width="190" height="36" rx="18" />
+        <text x="745" y="944" text-anchor="middle" font-size="11">Run ends (cancelled)</text>
+      </g>
+
+      <!-- L: diamond -->
+      <g class="n-diamond">
+        <polygon points="480,1000 580,1050 480,1100 380,1050" />
+        <text x="480" y="1045" text-anchor="middle" font-size="12" font-style="italic">Customer response</text>
+        <text x="480" y="1061" text-anchor="middle" font-size="12" font-style="italic">mode?</text>
+      </g>
+
+      <!-- M -->
+      <g class="n-box claude">
+        <rect x="90" y="1110" width="220" height="54" rx="8" />
+        <text x="200" y="1132" text-anchor="middle" font-size="13" font-weight="600">Claude simulates</text>
+        <text x="200" y="1149" text-anchor="middle" font-size="13">accept/reject</text>
+      </g>
+
+      <!-- N -->
+      <g class="n-box human">
+        <rect x="650" y="1110" width="220" height="54" rx="8" />
+        <text x="760" y="1132" text-anchor="middle" font-size="13" font-weight="600">Human pastes the</text>
+        <text x="760" y="1149" text-anchor="middle" font-size="13">real reply</text>
+      </g>
+
+      <!-- O -->
+      <g class="n-box claude">
+        <rect x="650" y="1198" width="220" height="54" rx="8" />
+        <text x="760" y="1220" text-anchor="middle" font-size="13" font-weight="600">Claude classifies</text>
+        <text x="760" y="1237" text-anchor="middle" font-size="13">accept/reject</text>
+      </g>
+
+      <!-- P: diamond -->
+      <g class="n-diamond">
+        <polygon points="480,1287 570,1335 480,1383 390,1335" />
+        <text x="480" y="1339" text-anchor="middle" font-size="13" font-style="italic">Accepted?</text>
+      </g>
+
+      <!-- Q -->
+      <g class="n-box system">
+        <rect x="90" y="1440" width="220" height="54" rx="8" />
+        <text x="200" y="1462" text-anchor="middle" font-size="13" font-weight="600">Kickoff scheduled +</text>
+        <text x="200" y="1479" text-anchor="middle" font-size="13">logged to SQLite</text>
+      </g>
+
+      <!-- R -->
+      <g class="n-box human">
+        <rect x="650" y="1440" width="220" height="54" rx="8" />
+        <text x="760" y="1472" text-anchor="middle" font-size="13" font-weight="600">Manual follow-up</text>
+      </g>
+    </svg>
+    <figcaption>
+      The LangGraph state machine behind Lanebook v2 — every box is one graph
+      node, every arrow a real edge, including the two "cancel" exits a
+      human can take at either approval gate.
+    </figcaption>
+  </figure>
+
+  <p class="principle">
+    <b>Design principle:</b> Claude never touches the numbers that matter —
+    routes and prices are always computed by deterministic code first, and
+    Claude only drafts the prose around them. Every action with a real
+    external effect (sending an email) passes through an explicit human
+    approval.
+  </p>
+</div>
