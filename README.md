@@ -76,6 +76,11 @@ Check it came up: `curl http://localhost:8000/api/health` should return `{"ok":t
 Without `SMTP_USERNAME`/`SMTP_PASSWORD` set in `.env`, quote emails are logged
 to the console instead of sent — the pipeline still runs end to end.
 
+If `.env` sets `API_KEY`, every route except `/api/health` requires that
+exact value in an `X-API-Key` header (401 otherwise) — set the same value in
+`frontend/.env.local` as `VITE_API_KEY` so the UI keeps working. Leave both
+unset to run with no auth (fine for a throwaway local demo only).
+
 ### 2. Frontend — http://localhost:5173
 
 ```

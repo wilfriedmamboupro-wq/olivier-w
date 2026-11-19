@@ -13,6 +13,7 @@ import re
 from langchain_anthropic import ChatAnthropic
 
 _MODEL_ID = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5")
+_REQUEST_TIMEOUT_SECONDS = float(os.environ.get("ANTHROPIC_TIMEOUT_SECONDS", "30"))
 
 # $ per million tokens (input, output) -- platform.claude.com/docs/en/pricing.
 _PRICING_PER_MTOK = {
@@ -29,7 +30,7 @@ call_count = 0
 def _get_llm() -> ChatAnthropic:
     global _llm
     if _llm is None:
-        _llm = ChatAnthropic(model=_MODEL_ID, max_tokens=1536)
+        _llm = ChatAnthropic(model=_MODEL_ID, max_tokens=1536, timeout=_REQUEST_TIMEOUT_SECONDS)
     return _llm
 
 
