@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 import { render, screen } from "../test/customRender";
 import ApprovalCard from "./ApprovalCard";
-import type { PendingInterrupt } from "../types";
+import type { PendingInterrupt } from "../domain/rfp";
 
 describe("ApprovalCard", () => {
   describe("email approval (pricing / quote)", () => {

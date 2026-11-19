@@ -1,4 +1,4 @@
-import type { TraceEvent } from "../types";
+import type { TraceEvent } from "../domain/rfp";
 import ActorChip from "./ActorChip";
 
 export default function OrchestrationTrace({ trace }: { trace: TraceEvent[] }) {

@@ -1,4 +1,4 @@
-import type { Actor } from "../types";
+import type { Actor } from "../domain/rfp";
 
 const LABEL: Record<Actor, string> = {
   claude: "Claude",

@@ -1,6 +1,6 @@
 import { useId, useState } from "react";
 import type { ReactNode } from "react";
-import type { PendingInterrupt } from "../types";
+import type { PendingInterrupt } from "../domain/rfp";
 
 interface Props {
   pendingInterrupt: PendingInterrupt;

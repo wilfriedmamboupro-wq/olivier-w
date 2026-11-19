@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { ApiError, getRfp, resumeRfp } from "../api";
+import { ApiError } from "../api/ApiError";
+import { getRfpById, resumeRfp } from "../api/rfpApi";
 import ApprovalCard from "../components/ApprovalCard";
 import LaneTable from "../components/LaneTable";
 import MessageThread from "../components/MessageThread";
 import OrchestrationTrace from "../components/OrchestrationTrace";
 import StatusPill from "../components/StatusPill";
-import type { Rfp } from "../types";
+import type { Rfp } from "../domain/rfp";
 
 export default function RfpDetail() {
   const { rfpId } = useParams<{ rfpId: string }>();
@@ -17,7 +18,7 @@ export default function RfpDetail() {
 
   const refresh = useCallback(() => {
     if (!rfpId) return;
-    getRfp(rfpId)
+    getRfpById(rfpId)
       .then(setRfp)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Could not load this RFP."));
   }, [rfpId]);

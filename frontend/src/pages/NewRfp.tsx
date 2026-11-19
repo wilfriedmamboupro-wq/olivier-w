@@ -1,9 +1,10 @@
 import { useEffect, useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiError, createRfp, listAirports } from "../api";
-import type { LaneDraft } from "../types";
+import { ApiError } from "../api/ApiError";
+import { createRfp, getAirports } from "../api/rfpApi";
+import type { LaneDraftDto } from "../dto/rfp.dto";
 
-const EMPTY_LANE: LaneDraft = { origin: "", destination: "", tons: 0, max_transit_days: 0, shipper_note: "" };
+const EMPTY_LANE: LaneDraftDto = { origin: "", destination: "", tons: 0, max_transit_days: 0, shipper_note: "" };
 
 export default function NewRfp() {
   const navigate = useNavigate();
@@ -11,18 +12,18 @@ export default function NewRfp() {
   const emailId = useId();
   const [customerName, setCustomerName] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
-  const [lanes, setLanes] = useState<LaneDraft[]>([{ ...EMPTY_LANE }]);
+  const [lanes, setLanes] = useState<LaneDraftDto[]>([{ ...EMPTY_LANE }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [airports, setAirports] = useState<string[]>([]);
 
   useEffect(() => {
-    listAirports()
+    getAirports()
       .then(setAirports)
       .catch(() => setError("Could not load the airport list from the Transit Table."));
   }, []);
 
-  function updateLane(index: number, patch: Partial<LaneDraft>) {
+  function updateLane(index: number, patch: Partial<LaneDraftDto>) {
     setLanes((prev) => prev.map((lane, i) => (i === index ? { ...lane, ...patch } : lane)));
   }
 
@@ -155,10 +156,10 @@ function LaneFields({
   onRemove,
   removable,
 }: {
-  lane: LaneDraft;
+  lane: LaneDraftDto;
   index: number;
   airports: string[];
-  onChange: (index: number, patch: Partial<LaneDraft>) => void;
+  onChange: (index: number, patch: Partial<LaneDraftDto>) => void;
   onRemove: (index: number) => void;
   removable: boolean;
 }) {

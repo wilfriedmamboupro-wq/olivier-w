@@ -56,28 +56,3 @@ export interface Rfp {
   is_paused: boolean;
   pending_interrupt: PendingInterrupt | null;
 }
-
-export interface LaneDraft {
-  origin: string;
-  destination: string;
-  tons: number;
-  max_transit_days: number;
-  shipper_note: string;
-}
-
-export interface Proposal {
-  id: number;
-  rfp_id: string;
-  lane_id: string;
-  origin: string;
-  destination: string;
-  tons: number;
-  route_airports: string;
-  transit_days: number;
-  requirements_requested: string;
-  requirements_fulfilled: string;
-  price_per_ton: number;
-  total_price: number;
-  customer_email: string;
-  accepted_at: string;
-}

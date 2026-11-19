@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "../test/customRender";
 import OrchestrationTrace from "./OrchestrationTrace";
-import type { TraceEvent } from "../types";
+import type { TraceEvent } from "../domain/rfp";
 
 describe("OrchestrationTrace", () => {
   it("shows an empty-state message when there are no trace events", () => {

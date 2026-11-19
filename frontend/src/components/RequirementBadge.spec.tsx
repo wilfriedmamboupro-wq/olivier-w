@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "../test/customRender";
 import RequirementBadge from "./RequirementBadge";
-import type { RequirementResult } from "../types";
+import type { RequirementResult } from "../domain/rfp";
 
 describe("RequirementBadge", () => {
   it("marks a fulfilled requirement with a check and an 'available' title", () => {

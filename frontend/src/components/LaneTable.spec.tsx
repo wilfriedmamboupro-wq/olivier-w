@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "../test/customRender";
 import LaneTable from "./LaneTable";
-import type { Lane } from "../types";
+import type { Lane } from "../domain/rfp";
 
 function makeLane(overrides: Partial<Lane> = {}): Lane {
   return {

@@ -1,4 +1,4 @@
-import type { Message } from "../types";
+import type { Message } from "../domain/rfp";
 
 export default function MessageThread({ messages }: { messages: Message[] }) {
   if (messages.length === 0) {

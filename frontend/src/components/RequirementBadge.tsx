@@ -1,4 +1,4 @@
-import type { RequirementResult } from "../types";
+import type { RequirementResult } from "../domain/rfp";
 
 export default function RequirementBadge({ requirement }: { requirement: RequirementResult }) {
   const className = requirement.fulfilled ? "req-badge req-badge--ok" : "req-badge req-badge--blocked";

@@ -1,4 +1,4 @@
-import type { Lane } from "../types";
+import type { Lane } from "../domain/rfp";
 import RequirementBadge from "./RequirementBadge";
 import StatusPill from "./StatusPill";
 

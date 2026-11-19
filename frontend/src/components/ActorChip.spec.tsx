@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "../test/customRender";
 import ActorChip from "./ActorChip";
-import type { Actor } from "../types";
+import type { Actor } from "../domain/rfp";
 
 describe("ActorChip", () => {
   it.each<[Actor, string]>([

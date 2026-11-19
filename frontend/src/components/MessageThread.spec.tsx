@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { render, screen } from "../test/customRender";
 import MessageThread from "./MessageThread";
-import type { Message } from "../types";
+import type { Message } from "../domain/rfp";
 
 describe("MessageThread", () => {
   it("shows an empty-state message when there are no messages", () => {

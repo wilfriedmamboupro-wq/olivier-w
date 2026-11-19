@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ApiError, listRfps } from "../api";
+import { ApiError } from "../api/ApiError";
+import { getRfps } from "../api/rfpApi";
 import StatusPill from "../components/StatusPill";
-import type { Rfp } from "../types";
+import type { Rfp } from "../domain/rfp";
 
 export default function Dashboard() {
   const [rfps, setRfps] = useState<Rfp[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    listRfps()
+    getRfps()
       .then(setRfps)
       .catch((err) => setError(err instanceof ApiError ? err.message : "Could not reach the RFP service."));
   }, []);
