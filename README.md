@@ -73,6 +73,10 @@ python -m uvicorn app.main:app --port 8000
 ```
 
 Check it came up: `curl http://localhost:8000/api/health` should return `{"ok":true}`.
+Interactive API docs (Swagger UI) are at `http://localhost:8000/docs` — if
+`API_KEY` is set, click **Authorize** there and paste it to try routes
+directly from the browser; ReDoc is at `/redoc` and the raw schema at
+`/openapi.json`.
 Without `SMTP_USERNAME`/`SMTP_PASSWORD` set in `.env`, quote emails are logged
 to the console instead of sent — the pipeline still runs end to end.
 
