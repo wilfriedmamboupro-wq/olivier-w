@@ -325,17 +325,22 @@ def await_customer_response(state: RfpState) -> dict:
         except Exception:  # noqa: BLE001
             body = "Thanks for the quote, this works for us!" if decision == "accepted" else "Thanks, but this doesn't work for us on price."
         actor = "claude"
-    else:  # real reply, already fetched by the caller (e.g. IMAP check) before resuming
+    else:  # real reply: the caller already has the text (e.g. pasted into the UI)
         body = payload.get("body", "")
+        classification_failed = False
         try:
             decision = llm.invoke_json(_CLASSIFY_SYSTEM_PROMPT, body).get("decision", "rejected")
         except Exception:  # noqa: BLE001
-            decision = "rejected"
+            decision, classification_failed = "rejected", True
         actor = "human"
+
+    summary = f"Customer reply ({mode}): classified as '{decision}'"
+    if mode == "real" and classification_failed:
+        summary += " -- classification call failed; defaulted to rejected, verify manually"
 
     return {
         "messages": [{"thread": "CUSTOMER", "direction": "inbound", "subject": "Re: Your air freight quote", "body": body}],
-        "trace": [_trace("await_customer_response", "done", f"Customer reply ({mode}): classified as '{decision}'", actor)],
+        "trace": [_trace("await_customer_response", "done", summary, actor)],
         "status": "ACCEPTED" if decision == "accepted" else "REJECTED",
     }
 
