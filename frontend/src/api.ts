@@ -26,6 +26,10 @@ export function listRfps(): Promise<Rfp[]> {
   return request("/api/rfps");
 }
 
+export function listAirports(): Promise<string[]> {
+  return request("/api/airports");
+}
+
 export function getRfp(rfpId: string): Promise<Rfp> {
   return request(`/api/rfps/${rfpId}`);
 }

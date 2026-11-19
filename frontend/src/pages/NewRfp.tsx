@@ -1,6 +1,6 @@
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ApiError, createRfp } from "../api";
+import { ApiError, createRfp, listAirports } from "../api";
 import type { LaneDraft } from "../types";
 
 const EMPTY_LANE: LaneDraft = { origin: "", destination: "", tons: 0, max_transit_days: 0, shipper_note: "" };
@@ -14,6 +14,13 @@ export default function NewRfp() {
   const [lanes, setLanes] = useState<LaneDraft[]>([{ ...EMPTY_LANE }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [airports, setAirports] = useState<string[]>([]);
+
+  useEffect(() => {
+    listAirports()
+      .then(setAirports)
+      .catch(() => setError("Could not load the airport list from the Transit Table."));
+  }, []);
 
   function updateLane(index: number, patch: Partial<LaneDraft>) {
     setLanes((prev) => prev.map((lane, i) => (i === index ? { ...lane, ...patch } : lane)));
@@ -90,7 +97,15 @@ export default function NewRfp() {
           </div>
 
           {lanes.map((lane, index) => (
-            <LaneFields key={index} lane={lane} index={index} onChange={updateLane} onRemove={removeLane} removable={lanes.length > 1} />
+            <LaneFields
+              key={index}
+              lane={lane}
+              index={index}
+              airports={airports}
+              onChange={updateLane}
+              onRemove={removeLane}
+              removable={lanes.length > 1}
+            />
           ))}
         </div>
 
@@ -105,12 +120,14 @@ export default function NewRfp() {
 function LaneFields({
   lane,
   index,
+  airports,
   onChange,
   onRemove,
   removable,
 }: {
   lane: LaneDraft;
   index: number;
+  airports: string[];
   onChange: (index: number, patch: Partial<LaneDraft>) => void;
   onRemove: (index: number) => void;
   removable: boolean;
@@ -131,23 +148,29 @@ function LaneFields({
       <div className="form-grid">
         <div className="field">
           <label htmlFor={originId}>Origin airport</label>
-          <input
-            id={originId}
-            value={lane.origin}
-            onChange={(e) => onChange(index, { origin: e.target.value.toUpperCase() })}
-            placeholder="JFK"
-            required
-          />
+          <select id={originId} value={lane.origin} onChange={(e) => onChange(index, { origin: e.target.value })} required>
+            <option value="" disabled>
+              {airports.length ? "Select an airport…" : "Loading airports…"}
+            </option>
+            {airports.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label htmlFor={destId}>Destination airport</label>
-          <input
-            id={destId}
-            value={lane.destination}
-            onChange={(e) => onChange(index, { destination: e.target.value.toUpperCase() })}
-            placeholder="LHR"
-            required
-          />
+          <select id={destId} value={lane.destination} onChange={(e) => onChange(index, { destination: e.target.value })} required>
+            <option value="" disabled>
+              {airports.length ? "Select an airport…" : "Loading airports…"}
+            </option>
+            {airports.map((code) => (
+              <option key={code} value={code}>
+                {code}
+              </option>
+            ))}
+          </select>
         </div>
         <div className="field">
           <label htmlFor={tonsId}>Tons</label>

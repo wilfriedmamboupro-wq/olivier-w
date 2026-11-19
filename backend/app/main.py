@@ -20,7 +20,11 @@ from pydantic import BaseModel
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from . import db  # noqa: E402
+from .data_loader import load_default_transit_table  # noqa: E402
 from .graph import get_graph  # noqa: E402
+
+_TRANSIT_LEGS = load_default_transit_table()
+_AIRPORTS = sorted({leg.origin for leg in _TRANSIT_LEGS} | {leg.destination for leg in _TRANSIT_LEGS})
 
 app = FastAPI(title="RFP Automation v2 (LangGraph)")
 
@@ -83,6 +87,11 @@ def _serialize(rfp_id: str) -> dict:
 @app.get("/api/health")
 def health() -> dict:
     return {"ok": True}
+
+
+@app.get("/api/airports")
+def list_airports() -> list[str]:
+    return _AIRPORTS
 
 
 @app.post("/api/rfps")
