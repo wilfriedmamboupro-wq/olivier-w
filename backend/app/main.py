@@ -14,7 +14,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from langgraph.types import Command
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -99,7 +99,7 @@ class LaneRequest(BaseModel):
 
 class CreateRfpRequest(BaseModel):
     customer_name: str
-    customer_email: str
+    customer_email: EmailStr
     lanes: list[LaneRequest] = Field(min_length=1, max_length=_MAX_LANES_PER_RFP)
 
 
