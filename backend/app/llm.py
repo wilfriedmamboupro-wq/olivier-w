@@ -1,8 +1,5 @@
-"""Thin wrapper around langchain-anthropic for the narrow, single-shot LLM
-calls used inside graph nodes (drafting prose, extracting structured data).
-Sampling parameters (temperature/top_p) are deliberately never set -- recent
-Claude models (Opus 4.7+) reject them outright, and adaptive thinking +
-prompting alone steer quality well enough.
+"""Thin wrapper around langchain-anthropic for the single-shot LLM calls used
+inside graph nodes (drafting prose, extracting structured data).
 """
 from __future__ import annotations
 

@@ -1,26 +1,23 @@
-# Lanebook v2 — RFP Automation on LangGraph
+# Lanebook — RFP Automation
 
-Second implementation of the same RFP automation brief as the v1 (AWS Bedrock
-+ Lambda + API Gateway) build, this time on a local-first stack: **LangGraph**
-orchestrates the pipeline as an explicit state machine, **FastAPI** exposes it
-over HTTP, and a new **React + TypeScript** frontend drives it. No AWS
-dependency anywhere — SQLite replaces RDS, and the LangGraph checkpointer
-replaces DynamoDB for run state.
+Air-freight RFP automation on a local-first stack: **LangGraph** orchestrates
+the pipeline as an explicit state machine, **FastAPI** exposes it over HTTP,
+and a **React + TypeScript** frontend drives it. SQLite handles persistence,
+and the LangGraph checkpointer tracks run state.
 
-The business logic is unchanged from v1 and is **never done by the LLM**:
-routing a lane through the Transit Table, scoring which special requirements
+Routing a lane through the Transit Table, scoring which special requirements
 a route can fulfill, and computing the baseline price per ton are all plain
-deterministic Python (`app/transit_graph.py`, `app/pricing_heuristic.py`).
-Claude's job is narrow — extracting requirements from free text and drafting
-the prose of each email — and it always drafts around numbers it's handed,
-never numbers it invents.
+deterministic Python (`app/transit_graph.py`, `app/pricing_heuristic.py`) —
+**never done by the LLM**. Claude's job is narrow: extracting requirements
+from free text and drafting the prose of each email, always around numbers
+it's handed, never numbers it invents.
 
 ## Architecture
 
 ```
 backend/app/
   models.py, transit_graph.py, requirements_catalog.py, pricing_heuristic.py
-      deterministic routing/pricing/requirement logic (ported from v1)
+      deterministic routing/pricing/requirement logic
   data_loader.py, data/transit_table.csv
       the carrier's Transit Table
   state.py        the RfpState TypedDict the graph operates on
@@ -101,10 +98,10 @@ cp .env.example .env.local    # VITE_API_BASE_URL, defaults to http://localhost:
 npm run dev
 ```
 
-Open the URL Vite prints (`5173`, or the next free port if something — e.g.
-the v1 frontend — is already on `5173`). Click **+ New RFP** and walk a lane
-through the pipeline: approve the pricing request, approve the quote, then
-record a simulated or real customer reply.
+Open the URL Vite prints (`5173`, or the next free port if one is already
+taken). Click **+ New RFP** and walk a lane through the pipeline: approve the
+pricing request, approve the quote, then record a simulated or real customer
+reply.
 
 ### Stopping
 

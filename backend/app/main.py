@@ -1,8 +1,5 @@
 """FastAPI server exposing the RFP LangGraph: create a run, read its current
-state (including whatever human-approval gate it's paused at, if any), and
-resume it with a decision. The graph's own SqliteSaver checkpointer is the
-source of truth for state -- this layer is just HTTP plumbing plus a small
-index table (app/db.py) so the dashboard can list every RFP ever created.
+state, and resume it with a decision.
 """
 from __future__ import annotations
 
@@ -31,12 +28,8 @@ _TRANSIT_LEGS = load_default_transit_table()
 _AIRPORTS = sorted({leg.origin for leg in _TRANSIT_LEGS} | {leg.destination for leg in _TRANSIT_LEGS})
 _MAX_LANES_PER_RFP = 20
 
-# The checkpointer holds one sqlite3 connection shared across requests, and
-# FastAPI runs sync route handlers in a threadpool -- so two requests can
-# reach it from different threads at once. sqlite3 connections aren't safe
-# for concurrent use even with check_same_thread=False (that flag only
-# disables Python's same-thread *assertion*, it doesn't add real locking).
-# A single process-wide lock serializes all graph access instead.
+# Serializes all graph access: the checkpointer's sqlite3 connection is
+# shared across requests and isn't safe for concurrent use.
 _graph_lock = threading.Lock()
 
 _API_KEY = os.environ.get("API_KEY")

@@ -1,12 +1,5 @@
 """Canonical special-requirement vocabulary shared by RFP parsing, the Transit
 Table, and requirement-fulfillment checks.
-
-The Bedrock-based parser (see handlers/parse_rfp.py) is the primary extractor
-in production -- free text can be phrased in ways no keyword list anticipates.
-``extract_requirements`` below is a deterministic fallback/validator: it lets
-us unit-test the routing + fulfillment logic without calling Bedrock, and it
-normalizes whatever the LLM returns onto this fixed set of codes so downstream
-logic never has to deal with free-text requirement names.
 """
 from __future__ import annotations
 

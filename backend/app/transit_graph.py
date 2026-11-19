@@ -1,14 +1,10 @@
-"""Routing engine over the client's Transit Table.
+"""Routing engine over the carrier's Transit Table.
 
-The client does not fly every origin-destination pair directly, so a lane may
-need several legs. We enumerate simple paths (bounded to MAX_LEGS hops -- the
-network is small, ~20 airports, so this is cheap) and score them by how many
-of the shipper's requested special requirements they can fulfill end-to-end,
-tie-broken by total transit time. This is a deliberate simplification: a pure
-shortest-path (by time) router would sometimes pick a route that fails a
-special requirement when a slightly slower route would have satisfied it, and
-the brief asks the proposal to state which requirements can/can't be met --
-so the router optimizes for that directly rather than for time alone.
+A lane may need several legs since not every origin-destination pair has a
+direct flight. Simple paths are enumerated (bounded to MAX_LEGS hops -- the
+network is small, ~20 airports, so this is cheap) and scored by how many of
+the shipper's requested special requirements they can fulfill end-to-end,
+tie-broken by total transit time, rather than by time alone.
 """
 from __future__ import annotations
 

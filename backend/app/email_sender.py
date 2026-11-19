@@ -1,7 +1,5 @@
-"""Sends the customer quote email for real via SMTP if credentials are
-configured; otherwise logs to the console and reports itself as mocked. No
-AWS SES path in v2 -- this project intentionally has no AWS dependency at
-all, which is itself part of the v1-vs-v2 comparison.
+"""Sends the customer quote email via SMTP if credentials are configured;
+otherwise logs to the console and reports itself as mocked.
 """
 from __future__ import annotations
 

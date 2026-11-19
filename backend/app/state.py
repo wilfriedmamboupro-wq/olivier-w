@@ -1,7 +1,5 @@
-"""State schema for the RFP LangGraph. Every node receives the full state
-and returns a partial dict to merge in -- list fields use `operator.add` so
-nodes append (trace, messages) instead of each node having to re-send the
-whole history.
+"""State schema for the RFP LangGraph. List fields use `operator.add` so
+nodes append (trace, messages) instead of re-sending the whole history.
 """
 from __future__ import annotations
 

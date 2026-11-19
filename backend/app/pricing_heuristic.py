@@ -1,11 +1,4 @@
-"""Deterministic baseline price used to ground the mock Pricing Team email.
-
-We never let the LLM invent the dollar figures themselves -- it only phrases
-the email around numbers computed here -- so the numbers a human reviewer
-sees are always reproducible and auditable, never a hallucination.
-This is a simple, transparent placeholder for whatever rate card / costing
-model the real Pricing team would apply.
-"""
+"""Deterministic baseline price used to ground the mock Pricing Team email."""
 from __future__ import annotations
 
 BASE_RATE_PER_TON = 1200.0

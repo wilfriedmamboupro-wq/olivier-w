@@ -1,8 +1,4 @@
-"""Loads the client's Transit Table (a reference dataset shipped with the
-app, not per-RFP input). Ported from the v1 project -- same CSV, same
-parsing logic, kept as a standalone copy so this v2 has no dependency on
-the v1 codebase.
-"""
+"""Loads the carrier's Transit Table, a reference dataset shipped with the app."""
 from __future__ import annotations
 
 import csv

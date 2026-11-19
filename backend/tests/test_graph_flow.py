@@ -1,9 +1,6 @@
-"""End-to-end test of the RFP graph using the deterministic fallback paths
-(every LLM call in app/nodes.py is wrapped in try/except and falls back to a
-keyword/regex/template method on failure) -- so this suite needs no real
-Anthropic API key and makes no network calls, while still exercising the
-full ingest -> route -> price -> quote -> accept/reject flow and both
-interrupt/resume gates.
+"""End-to-end test of the RFP graph. Every LLM call in app/nodes.py falls
+back to a keyword/regex/template method on failure, so this suite needs no
+real Anthropic API key and makes no network calls.
 """
 from __future__ import annotations
 
@@ -22,10 +19,7 @@ def graph(tmp_path, monkeypatch):
     monkeypatch.setenv("CHECKPOINT_DB_PATH", str(tmp_path / "checkpoints.db"))
     monkeypatch.setenv("PROPOSALS_DB_PATH", str(tmp_path / "proposals.db"))
 
-    # app.db and app.graph read their DB paths from the environment once at
-    # import time, so each test needs a fresh import bound to its own tmp_path
-    # rather than the module cached (and pinned to a different path) by a
-    # previous test in the same pytest process.
+    # Force a fresh import so app.db/app.graph re-read the tmp_path env vars.
     for name in _APP_MODULES:
         sys.modules.pop(name, None)
 

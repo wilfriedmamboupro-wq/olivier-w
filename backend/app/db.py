@@ -1,9 +1,4 @@
-"""The "SQL DB" the brief asks accepted proposals to be logged into.
-v2 uses plain SQLite instead of RDS/Postgres -- no VPC, no server to run,
-one file on disk -- which is the whole point of comparing against v1: the
-same requirement, met with far less infrastructure when the orchestrator
-is a single process instead of a fleet of stateless Lambdas.
-"""
+"""SQLite persistence: the accepted-proposal log and an RFP index for the dashboard."""
 from __future__ import annotations
 
 import json

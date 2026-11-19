@@ -1,10 +1,5 @@
-"""Assembles the RFP StateGraph.
-
-Linear spine with two human-approval gates (pricing send, quote send) and one
-branch point (customer accepts vs rejects). Each gate is split into a
-"draft" node (does the LLM work, runs once) followed by an "await" node
-(nothing but `interrupt()`) -- seeing a node re-run from its own top on every
-resume (see nodes.py docstring) is what forced this split.
+"""Assembles the RFP StateGraph: a linear spine with two human-approval
+gates (pricing send, quote send) and one branch point (accept vs reject).
 """
 from __future__ import annotations
 
